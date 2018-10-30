@@ -1,5 +1,11 @@
 package com.adobe.phonegap.push;
 
+// New imports
+import android.annotation.TargetApi;
+import android.app.NotificationChannel;
+import android.os.Build;
+// End New imports
+
 import android.app.NotificationManager;
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -46,6 +52,29 @@ public class PushPlugin extends CordovaPlugin implements PushConstants {
         return this.cordova.getActivity().getApplicationContext();
     }
 
+    private String getChannelID() {
+        String packageName = getApplicationContext().getPackageName();
+        return packageName + DEFAULT_CHANNEL_ID;
+    }
+    @TargetApi(26)
+    private void createNotificationChannel() {
+        String channelName = getChannelID();
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is new and not in the support library
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Log.e(LOG_TAG, "Creating default channel");
+            CharSequence name = channelName;
+            String description = channelName;
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel(channelName, name, importance);
+            channel.setDescription(description);
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            NotificationManager notificationManager = (NotificationManager) cordova.getActivity()
+          .getSystemService(Context.NOTIFICATION_SERVICE);
+            notificationManager.createNotificationChannel(channel);
+        }
+    }
     @Override
     public boolean execute(final String action, final JSONArray data, final CallbackContext callbackContext) {
         Log.v(LOG_TAG, "execute: action=" + action);
@@ -63,6 +92,7 @@ public class PushPlugin extends CordovaPlugin implements PushConstants {
 
                     try {
                         jo = data.getJSONObject(0).getJSONObject(ANDROID);
+                        createNotificationChannel();
 
                         Log.v(LOG_TAG, "execute: jo=" + jo.toString());
 
@@ -281,15 +311,15 @@ public class PushPlugin extends CordovaPlugin implements PushConstants {
         }
     }
 
-	/*
+    /*
      * Retrives badge count from SharedPreferences
      */
-	public static int getApplicationIconBadgeNumber(Context context){
+    public static int getApplicationIconBadgeNumber(Context context){
         SharedPreferences settings = context.getSharedPreferences(BADGE, Context.MODE_PRIVATE);
         return settings.getInt(BADGE, 0);
     }
 
-	/*
+    /*
      * Sets badge count on application icon and in SharedPreferences
      */
     public static void setApplicationIconBadgeNumber(Context context, int badgeCount) {
@@ -344,8 +374,8 @@ public class PushPlugin extends CordovaPlugin implements PushConstants {
     * Normally, the `topic` inputed from end-user is `topic name` only.
     * We should convert them to GCM `topic path`
     * Example:
-    *  when	    topic name = 'my-topic'
-    *  then	    topic path = '/topics/my-topic'
+    *  when     topic name = 'my-topic'
+    *  then     topic path = '/topics/my-topic'
     *
     * @param    String  topic The topic name
     * @return           The topic path
@@ -379,7 +409,7 @@ public class PushPlugin extends CordovaPlugin implements PushConstants {
             }
         } catch (IOException e) {
             Log.e(LOG_TAG, "Failed to subscribe to topic: " + topic, e);
-			throw e;
+            throw e;
         } catch (IllegalArgumentException argException) {
             Log.e(LOG_TAG, "Cannot subscribe to topic [" + topic + "], illegal topic name");
         }
@@ -411,7 +441,7 @@ public class PushPlugin extends CordovaPlugin implements PushConstants {
             }
         } catch (IOException e) {
             Log.e(LOG_TAG, "Failed to unsubscribe to topic: " + topic, e);
-			throw e;
+            throw e;
         }
     }
 

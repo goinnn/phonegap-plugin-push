@@ -1,5 +1,12 @@
 package com.adobe.phonegap.push;
 
+// New imports
+import android.app.NotificationChannel;
+import android.os.Build;
+import java.util.List;
+import android.annotation.TargetApi;
+// End New imports
+
 import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -333,6 +340,19 @@ public class GCMIntentService extends GcmListenerService implements PushConstant
         }
     }
 
+    public String getChannelID(Context context, NotificationManager mNotificationManager, Bundle extras) {
+        String channelID;
+        String packageName = context.getPackageName();
+        List<NotificationChannel> channels = mNotificationManager.getNotificationChannels();
+        if (channels.size() == 1) {
+            channelID = channels.get(0).getId();
+        }
+        else {
+            channelID = packageName + DEFAULT_CHANNEL_ID;
+        }
+        return channelID;
+    }
+
     public void createNotification(Context context, Bundle extras) {
         NotificationManager mNotificationManager = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         String appName = getAppName(this);
@@ -357,14 +377,19 @@ public class GCMIntentService extends GcmListenerService implements PushConstant
         requestCode = new Random().nextInt();
         PendingIntent deleteIntent = PendingIntent.getBroadcast(this, requestCode, dismissedNotificationIntent, PendingIntent.FLAG_CANCEL_CURRENT);
 
-        NotificationCompat.Builder mBuilder =
-                new NotificationCompat.Builder(context)
-                        .setWhen(System.currentTimeMillis())
-                        .setContentTitle(fromHtml(extras.getString(TITLE)))
-                        .setTicker(fromHtml(extras.getString(TITLE)))
-                        .setContentIntent(contentIntent)
-                        .setDeleteIntent(deleteIntent)
-                        .setAutoCancel(true);
+        NotificationCompat.Builder mBuilder = null;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            mBuilder = new NotificationCompat.Builder(context, this.getChannelID(context, mNotificationManager, extras));
+         } else {
+            mBuilder = new NotificationCompat.Builder(context);
+        }
+
+        mBuilder.setWhen(System.currentTimeMillis())
+                .setContentTitle(fromHtml(extras.getString(TITLE)))
+                .setTicker(fromHtml(extras.getString(TITLE)))
+                .setContentIntent(contentIntent)
+                .setDeleteIntent(deleteIntent)
+                .setAutoCancel(true);
 
         SharedPreferences prefs = context.getSharedPreferences(PushPlugin.COM_ADOBE_PHONEGAP_PUSH, Context.MODE_PRIVATE);
         String localIcon = prefs.getString(ICON, null);

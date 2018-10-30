@@ -80,4 +80,5 @@ public interface PushConstants {
     public static final String IMAGE_TYPE_CIRCLE = "circle";
     public static final String SUBJECT = "subject";
     public static final String PUSH_DISMISSED = "push_dismissed";
+    public static final String DEFAULT_CHANNEL_ID = "default_channel";
 }
